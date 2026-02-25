@@ -1,31 +1,59 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-from sklearn.linear_model import LogisticRegression
 import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, confusion_matrix
 
-# ---------------- PAGE CONFIG ----------------
+# ---------------- PAGE CONFIG (MUST BE FIRST) ----------------
 st.set_page_config(page_title="TrustNet", page_icon="🛡", layout="wide")
 
+# ---------------- HEADER ----------------
+st.image("logo.png", width=150)
 st.title("🛡 TrustNet")
-st.subheader("Advanced AI Fake Account & Scam Detection System")
+st.markdown("""
+### 🌍 Protecting Digital Identities Worldwide
+
+TrustNet uses Artificial Intelligence to detect:
+- Fake social media accounts
+- Scam messages
+- Fraud risk probability
+
+Built for safer online communities.
+""")
 st.markdown("---")
 
-# ---------------- TRAIN SIMPLE ML MODEL ----------------
-# Dummy dataset (for demo ML model)
-data = pd.DataFrame({
-    "followers": [10, 500, 30, 1000, 20, 800],
-    "following": [300, 400, 200, 900, 500, 700],
-    "posts": [1, 100, 2, 300, 3, 200],
-    "account_age": [5, 365, 10, 400, 15, 500],
-    "fake": [1, 0, 1, 0, 1, 0]
-})
+# ---------------- LOAD DATASET ----------------
+df = pd.read_csv("fake_accounts_dataset.csv")
 
-X = data[["followers", "following", "posts", "account_age"]]
-y = data["fake"]
+X = df[[
+    "profile pic",
+    "nums/length username",
+    "fullname words",
+    "nums/length fullname",
+    "name==username",
+    "description length",
+    "external URL",
+    "private",
+    "#posts",
+    "#followers",
+    "#follows"
+]]
 
-model = LogisticRegression()
-model.fit(X, y)
+y = df["fake"]
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+model = LogisticRegression(max_iter=2000)
+model.fit(X_train, y_train)
+
+predictions = model.predict(X_test)
+accuracy = accuracy_score(y_test, predictions)
+cm = confusion_matrix(y_test, predictions)
 
 # ---------------- SIDEBAR ----------------
 option = st.sidebar.selectbox(
@@ -33,75 +61,108 @@ option = st.sidebar.selectbox(
     ("Fake Account Detector", "Bulk CSV Analysis", "Scam Message Detector")
 )
 
+st.sidebar.markdown("---")
+st.sidebar.header("About TrustNet")
+st.sidebar.write("""
+TrustNet is an AI-based fraud detection system designed 
+to identify fake profiles and scam messages using 
+machine learning and risk analysis.
+""")
+
+st.sidebar.metric("Model Accuracy", f"{accuracy*100:.2f}%")
+
+# ---------------- CONFUSION MATRIX ----------------
+st.sidebar.markdown("### Confusion Matrix")
+fig_cm, ax_cm = plt.subplots()
+sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
+st.sidebar.pyplot(fig_cm)
+
 # =====================================================
-# 1️⃣ FAKE ACCOUNT DETECTOR (ML VERSION)
+# 1️⃣ FAKE ACCOUNT DETECTOR
 # =====================================================
 if option == "Fake Account Detector":
+
     st.header("🔍 AI Fake Account Detection")
 
     col1, col2 = st.columns(2)
 
     with col1:
-        followers = st.number_input("Followers", min_value=0)
-        following = st.number_input("Following", min_value=0)
-        posts = st.number_input("Posts", min_value=0)
+        profile_pic = st.selectbox("Profile Picture", [0, 1])
+        username_ratio = st.number_input("Nums/Length Username", min_value=0.0)
+        fullname_words = st.number_input("Fullname Words", min_value=0)
+        fullname_ratio = st.number_input("Nums/Length Fullname", min_value=0.0)
+        name_equal = st.selectbox("Name == Username", [0, 1])
+        description_length = st.number_input("Description Length", min_value=0)
 
     with col2:
-        account_age = st.number_input("Account Age (days)", min_value=0)
-        username = st.text_input("Username")
+        external_url = st.selectbox("External URL", [0, 1])
+        private = st.selectbox("Private Account", [0, 1])
+        posts = st.number_input("Posts", min_value=0)
+        followers = st.number_input("Followers", min_value=0)
+        follows = st.number_input("Follows", min_value=0)
 
     if st.button("Analyze Account"):
 
-        input_data = np.array([[followers, following, posts, account_age]])
-        probability = model.predict_proba(input_data)[0][1]
-        risk_score = int(probability * 100)
+        with st.spinner("Running AI Risk Analysis..."):
+            input_data = np.array([[ 
+                profile_pic,
+                username_ratio,
+                fullname_words,
+                fullname_ratio,
+                name_equal,
+                description_length,
+                external_url,
+                private,
+                posts,
+                followers,
+                follows
+            ]])
 
-        st.subheader("📊 Risk Score")
+            probability = model.predict_proba(input_data)[0][1]
+            risk_score = int(probability * 100)
+
+        st.subheader("📊 Fake Probability Score")
         st.progress(risk_score)
         st.metric("Fake Probability", f"{risk_score}%")
 
-        # Username risk check
-        suspicious_patterns = ["123", "official", "crypto", "free", "win"]
-        username_risk = any(word in username.lower() for word in suspicious_patterns)
-
-        if risk_score > 70 or username_risk:
+        if risk_score > 70:
             st.error("🚨 High Risk Fake Profile")
         elif risk_score > 40:
             st.warning("⚠ Medium Risk Profile")
         else:
             st.success("✅ Low Risk Profile")
 
-        # Visualization
-        fig, ax = plt.subplots()
-        ax.bar(["Risk Score"], [risk_score])
-        ax.set_ylim(0, 100)
-        st.pyplot(fig)
+        fig_bar, ax_bar = plt.subplots()
+        ax_bar.bar(["Fake Probability"], [risk_score])
+        ax_bar.set_ylim(0, 100)
+        st.pyplot(fig_bar)
 
 # =====================================================
 # 2️⃣ BULK CSV ANALYSIS
 # =====================================================
 elif option == "Bulk CSV Analysis":
+
     st.header("📂 Bulk Fake Account Analysis")
 
     uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
 
     if uploaded_file:
-        df = pd.read_csv(uploaded_file)
-
+        bulk_df = pd.read_csv(uploaded_file)
         st.write("Preview Data")
-        st.dataframe(df.head())
+        st.dataframe(bulk_df.head())
 
         if st.button("Run Bulk Analysis"):
-            X_bulk = df[["followers", "following", "posts", "account_age"]]
+
+            X_bulk = bulk_df[X.columns]
             probs = model.predict_proba(X_bulk)[:, 1]
-            df["Fake Probability (%)"] = (probs * 100).astype(int)
+            bulk_df["Fake Probability (%)"] = (probs * 100).astype(int)
 
             st.success("Analysis Complete")
-            st.dataframe(df)
+            st.dataframe(bulk_df)
 
             st.download_button(
                 "Download Results",
-                df.to_csv(index=False),
+                bulk_df.to_csv(index=False),
                 "TrustNet_Results.csv",
                 "text/csv"
             )
@@ -110,6 +171,7 @@ elif option == "Bulk CSV Analysis":
 # 3️⃣ SCAM MESSAGE DETECTOR
 # =====================================================
 elif option == "Scam Message Detector":
+
     st.header("📩 AI Scam Message Detection")
 
     message = st.text_area("Paste Message Here")
