@@ -15,14 +15,12 @@ st.set_page_config(
 )
 
 # ---------------- REMOVE STREAMLIT HEADER ----------------
-st.markdown("""
-    <style>
-        #MainMenu {visibility: hidden;}
-        footer {visibility: hidden;}
-        header {visibility: hidden;}
-    </style>
-""", unsafe_allow_html=True)
-
+st.set_page_config(
+    page_title="TrustNet AI Security",
+    page_icon="logo.png",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 # ---------------- SPLASH SCREEN ----------------
 splash = st.empty()
 with splash.container():
