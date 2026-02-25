@@ -58,38 +58,45 @@ Built for safer online communities.
 st.markdown("---")
 
 # ---------------- LOAD DATASET ----------------
-df = pd.read_csv("fake_accounts_dataset.csv")
+@st.cache_resource
+def load_model():
+    df = pd.read_csv("fake_accounts_dataset.csv")
 
-FEATURES = [
-    "profile pic",
-    "nums/length username",
-    "fullname words",
-    "nums/length fullname",
-    "name==username",
-    "description length",
-    "external URL",
-    "private",
-    "#posts",
-    "#followers",
-    "#follows"
-]
+    FEATURES = [
+        "profile pic",
+        "nums/length username",
+        "fullname words",
+        "nums/length fullname",
+        "name==username",
+        "description length",
+        "external URL",
+        "private",
+        "#posts",
+        "#followers",
+        "#follows"
+    ]
 
-X = df[FEATURES]
-y = df["fake"]
+    X = df[FEATURES]
+    y = df["fake"]
 
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42
-)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
 
-model = LogisticRegression(max_iter=3000)
-model.fit(X_train, y_train)
+    model = LogisticRegression(max_iter=3000)
+    model.fit(X_train, y_train)
 
-predictions = model.predict(X_test)
-accuracy = accuracy_score(y_test, predictions)
-cm = confusion_matrix(y_test, predictions)
+    predictions = model.predict(X_test)
+    accuracy = accuracy_score(y_test, predictions)
+    cm = confusion_matrix(y_test, predictions)
+
+    return model, accuracy, cm, FEATURES
+
+
+model, accuracy, cm, FEATURES = load_model()
 
 # ---------------- SIDEBAR ----------------
-option = st.sidebar.selectbox(
+option = st.sidebar.radio(
     "Choose Module",
     ("Fake Account Detector", "Bulk CSV Analysis", "Scam Message Detector")
 )
