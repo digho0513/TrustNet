@@ -2,24 +2,56 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, confusion_matrix
+import time
 
 # ---------------- PAGE CONFIG (MUST BE FIRST) ----------------
-st.set_page_config(page_title="TrustNet", page_icon="🛡", layout="wide")
+st.set_page_config(
+    page_title="TrustNet AI Security",
+    page_icon="logo.png",
+    layout="wide"
+)
+
+# ---------------- REMOVE STREAMLIT HEADER ----------------
+st.markdown("""
+    <style>
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        header {visibility: hidden;}
+    </style>
+""", unsafe_allow_html=True)
+
+# ---------------- SPLASH SCREEN ----------------
+splash = st.empty()
+with splash.container():
+    try:
+        st.image("logo.png", width=200)
+    except:
+        pass
+    st.title("TrustNet")
+    st.write("Initializing AI Security Engine...")
+    time.sleep(2)
+splash.empty()
+
+# ---------------- OFFLINE WARNING ----------------
+st.warning("⚠ If this page does not load, please check your internet connection.")
 
 # ---------------- HEADER ----------------
-st.image("logo.png", width=150)
+try:
+    st.image("logo.png", width=150)
+except:
+    pass
+
 st.title("🛡 TrustNet")
 st.markdown("""
 ### 🌍 Protecting Digital Identities Worldwide
 
 TrustNet uses Artificial Intelligence to detect:
-- Fake social media accounts
-- Scam messages
-- Fraud risk probability
+- Fake social media accounts  
+- Scam messages  
+- Fraud risk probability  
 
 Built for safer online communities.
 """)
@@ -28,7 +60,7 @@ st.markdown("---")
 # ---------------- LOAD DATASET ----------------
 df = pd.read_csv("fake_accounts_dataset.csv")
 
-X = df[[
+FEATURES = [
     "profile pic",
     "nums/length username",
     "fullname words",
@@ -40,15 +72,16 @@ X = df[[
     "#posts",
     "#followers",
     "#follows"
-]]
+]
 
+X = df[FEATURES]
 y = df["fake"]
 
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42
 )
 
-model = LogisticRegression(max_iter=2000)
+model = LogisticRegression(max_iter=3000)
 model.fit(X_train, y_train)
 
 predictions = model.predict(X_test)
@@ -61,20 +94,18 @@ option = st.sidebar.selectbox(
     ("Fake Account Detector", "Bulk CSV Analysis", "Scam Message Detector")
 )
 
-st.sidebar.markdown("---")
-st.sidebar.header("About TrustNet")
-st.sidebar.write("""
-TrustNet is an AI-based fraud detection system designed 
-to identify fake profiles and scam messages using 
-machine learning and risk analysis.
-""")
-
 st.sidebar.metric("Model Accuracy", f"{accuracy*100:.2f}%")
 
-# ---------------- CONFUSION MATRIX ----------------
-st.sidebar.markdown("### Confusion Matrix")
+# Confusion Matrix (Matplotlib only)
 fig_cm, ax_cm = plt.subplots()
-sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
+ax_cm.imshow(cm)
+
+for i in range(len(cm)):
+    for j in range(len(cm[0])):
+        ax_cm.text(j, i, cm[i][j], ha="center", va="center")
+
+ax_cm.set_xlabel("Predicted")
+ax_cm.set_ylabel("Actual")
 st.sidebar.pyplot(fig_cm)
 
 # =====================================================
@@ -103,7 +134,13 @@ if option == "Fake Account Detector":
 
     if st.button("Analyze Account"):
 
-        with st.spinner("Running AI Risk Analysis..."):
+        with st.spinner("🔐 Running AI Fraud Detection..."):
+
+            progress_bar = st.progress(0)
+            for percent in range(100):
+                time.sleep(0.01)
+                progress_bar.progress(percent + 1)
+
             input_data = np.array([[ 
                 profile_pic,
                 username_ratio,
@@ -132,40 +169,37 @@ if option == "Fake Account Detector":
         else:
             st.success("✅ Low Risk Profile")
 
-        fig_bar, ax_bar = plt.subplots()
-        ax_bar.bar(["Fake Probability"], [risk_score])
-        ax_bar.set_ylim(0, 100)
-        st.pyplot(fig_bar)
-
 # =====================================================
 # 2️⃣ BULK CSV ANALYSIS
 # =====================================================
 elif option == "Bulk CSV Analysis":
 
     st.header("📂 Bulk Fake Account Analysis")
-
     uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
 
     if uploaded_file:
         bulk_df = pd.read_csv(uploaded_file)
-        st.write("Preview Data")
         st.dataframe(bulk_df.head())
 
         if st.button("Run Bulk Analysis"):
 
-            X_bulk = bulk_df[X.columns]
-            probs = model.predict_proba(X_bulk)[:, 1]
-            bulk_df["Fake Probability (%)"] = (probs * 100).astype(int)
+            if all(col in bulk_df.columns for col in FEATURES):
 
-            st.success("Analysis Complete")
-            st.dataframe(bulk_df)
+                X_bulk = bulk_df[FEATURES]
+                probs = model.predict_proba(X_bulk)[:, 1]
+                bulk_df["Fake Probability (%)"] = (probs * 100).astype(int)
 
-            st.download_button(
-                "Download Results",
-                bulk_df.to_csv(index=False),
-                "TrustNet_Results.csv",
-                "text/csv"
-            )
+                st.success("Analysis Complete")
+                st.dataframe(bulk_df)
+
+                st.download_button(
+                    "Download Results",
+                    bulk_df.to_csv(index=False),
+                    "TrustNet_Results.csv",
+                    "text/csv"
+                )
+            else:
+                st.error("Uploaded CSV format is incorrect.")
 
 # =====================================================
 # 3️⃣ SCAM MESSAGE DETECTOR
@@ -173,12 +207,15 @@ elif option == "Bulk CSV Analysis":
 elif option == "Scam Message Detector":
 
     st.header("📩 AI Scam Message Detection")
-
     message = st.text_area("Paste Message Here")
 
     if st.button("Analyze Message"):
 
-        scam_keywords = ["invest", "profit", "otp", "urgent", "click", "prize", "bitcoin"]
+        scam_keywords = [
+            "invest", "profit", "otp", "urgent",
+            "click", "prize", "bitcoin"
+        ]
+
         risk_score = sum(word in message.lower() for word in scam_keywords) * 15
         risk_score = min(risk_score, 100)
 
