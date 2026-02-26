@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TrustNet AI Security</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f172a">
+
+<style>
+body {
+  margin:0;
+  font-family: 'Segoe UI', sans-serif;
+  background: linear-gradient(135deg,#0f172a,#1e293b);
+  color:white;
+  overflow-x:hidden;
+}
+
+header {
+  text-align:center;
+  padding:40px 20px;
+}
+
+.logo {
+  width:120px;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%{transform:translateY(0px);}
+  50%{transform:translateY(-10px);}
+  100%{transform:translateY(0px);}
+}
+
+.container {
+  max-width:1000px;
+  margin:auto;
+  padding:20px;
+}
+
+.card {
+  background: rgba(255,255,255,0.05);
+  padding:25px;
+  border-radius:20px;
+  backdrop-filter: blur(10px);
+  margin-bottom:20px;
+  transition:0.3s;
+}
+
+.card:hover {
+  transform:translateY(-5px);
+}
+
+input, select {
+  width:100%;
+  padding:10px;
+  margin-top:8px;
+  margin-bottom:15px;
+  border-radius:10px;
+  border:none;
+}
+
+button {
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:12px;
+  background:linear-gradient(90deg,#3b82f6,#06b6d4);
+  color:white;
+  font-weight:bold;
+  cursor:pointer;
+  transition:0.3s;
+}
+
+button:hover {
+  opacity:0.8;
+}
+
+.progress {
+  height:20px;
+  background:#1e293b;
+  border-radius:10px;
+  overflow:hidden;
+  margin-top:10px;
+}
+
+.progress-bar {
+  height:100%;
+  width:0%;
+  background:linear-gradient(90deg,#22c55e,#3b82f6);
+  transition:width 1s ease;
+}
+
+footer {
+  text-align:center;
+  padding:20px;
+  font-size:14px;
+  opacity:0.6;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <img src="icon-512.png" class="logo">
+  <h1>🛡 TrustNet AI Security</h1>
+  <p>Protecting Digital Identities Worldwide</p>
+</header>
+
+<div class="container">
+
+<div class="card">
+<h2>🔍 Fake Account Detector</h2>
+
+<label>Profile Picture (0/1)</label>
+<input type="number" id="profile_pic">
+
+<label>Username Ratio</label>
+<input type="number" id="username_ratio">
+
+<label>Fullname Words</label>
+<input type="number" id="fullname_words">
+
+<label>Description Length</label>
+<input type="number" id="description_length">
+
+<button onclick="analyze()">Analyze Account</button>
+
+<div class="progress">
+<div class="progress-bar" id="progressBar"></div>
+</div>
+
+<h3 id="result"></h3>
+
+</div>
+
+</div>
+
+<footer>
+TrustNet © 2026 | AI Cyber Defense Engine
+</footer>
+
+<script>
+function sigmoid(x){
+  return 1/(1+Math.exp(-x));
+}
+
+function analyze(){
+
+  let profile_pic = parseFloat(document.getElementById("profile_pic").value) || 0;
+  let username_ratio = parseFloat(document.getElementById("username_ratio").value) || 0;
+  let fullname_words = parseFloat(document.getElementById("fullname_words").value) || 0;
+  let description_length = parseFloat(document.getElementById("description_length").value) || 0;
+
+  // Dummy AI weights (replace later with real model weights)
+  let score = (
+    profile_pic * -1.2 +
+    username_ratio * 3.4 +
+    fullname_words * -0.8 +
+    description_length * 0.02
+  );
+
+  let probability = sigmoid(score);
+  let percent = Math.round(probability * 100);
+
+  document.getElementById("progressBar").style.width = percent + "%";
+
+  if(percent > 70){
+    document.getElementById("result").innerHTML = "🚨 High Risk Fake Profile ("+percent+"%)";
+  }
+  else if(percent > 40){
+    document.getElementById("result").innerHTML = "⚠ Medium Risk Profile ("+percent+"%)";
+  }
+  else{
+    document.getElementById("result").innerHTML = "✅ Low Risk Profile ("+percent+"%)";
+  }
+}
+
+// Register Service Worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('service-worker.js');
+}
+</script>
+
+</body>
+</html>
